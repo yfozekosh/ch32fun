@@ -3401,6 +3401,8 @@ static int DefaultSetClock( void * dev, uint32_t clock )
 
 int SetupAutomaticHighLevelFunctions( void * dev )
 {
+	struct InternalState * iss = (struct InternalState*)(((struct ProgrammerStructBase*)dev)->internal);
+
 	// Will populate high-level functions from low-level functions.
 	if( MCF.WriteReg32 == 0 && MCF.ReadReg32 == 0 && MCF.WriteWord == 0 ) return -5;
 
@@ -3461,6 +3463,10 @@ int SetupAutomaticHighLevelFunctions( void * dev )
 		MCF.VoidHighLevelState = DefaultVoidHighLevelState;
 	if( !MCF.DelayUS )
 		MCF.DelayUS = DefaultDelayUS;
+	// Direct-DMI fast step is safe only with the default DMI halt path.
+	// Programmers with their own halt logic keep the existing path.
+	iss->fast_step = ( MCF.HaltMode == DefaultHaltMode ) && MCF.WriteReg32 &&
+		MCF.ReadReg32 && MCF.FlushLLCommands && MCF.DelayUS;
 	if( !MCF.GetUUID )
 		MCF.GetUUID = DefaultGetUUID;
   if( !MCF.SetClock )
