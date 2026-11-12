@@ -85,6 +85,7 @@ int WSAAPI WSAPoll(struct pollfd * fdArray, ULONG	   fds, INT		 timeout );
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/tcp.h>
 #include <unistd.h>
 #include <poll.h>
 #endif
@@ -821,6 +822,10 @@ int MicroGDBPollServer( void * dev )
 			int tsocket = accept( serverSocket, (struct sockaddr *)&tin, (void*)&addrlen );
 			closesocket( serverSocket );
 			serverSocket = tsocket;
+			{
+				int nodelay = 1;
+				setsockopt( serverSocket, IPPROTO_TCP, TCP_NODELAY, (const char *)&nodelay, sizeof( nodelay ) );
+			}
 			listenMode = 2;
 			gdbbufferstate = 0;
 			RVNetConnect( dev );
