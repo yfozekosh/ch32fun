@@ -145,23 +145,27 @@ void * TryInit_Ardulink(const init_hints_t* hints)
 
 	if (serial_dev_create(&ctx->serial, serial_to_open, 115200) == -1) {
 		perror("create");
+		free(ctx);
 		return NULL;
 	}
 
 	if (serial_dev_open(&ctx->serial) == -1) {
 		perror("open");
+		free(ctx);
 		return NULL;
 	}
 
 	// Arduino DTR reset.
 	if (serial_dev_do_dtr_reset(&ctx->serial) == -1) {
 		perror("dtr reset");
+		free(ctx);
 		return NULL;
 	}
 
 	// Flush anything that might be in the RX buffer, we need the sync char.
 	if (serial_dev_flush_rx(&ctx->serial) == -1) {
 		perror("flush rx");
+		free(ctx);
 		return NULL;
 	}
 

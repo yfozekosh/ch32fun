@@ -1337,8 +1337,8 @@ static int DefaultGetUUID( void * dev, uint8_t * buffer )
 		MCF.WaitForDoneOp( dev, 0 );
 		MCF.WriteReg32( dev, DMCOMMAND, 0x00221008 ); // Copy data from x8.
 		MCF.ReadReg32( dev, DMDATA0, (uint32_t*)(local_buffer + 4) );
-		*((uint32_t*)buffer) = local_buffer[0]<<24|local_buffer[1]<<16|local_buffer[2]<<8|local_buffer[3];
-		*(((uint32_t*)buffer)+1) = local_buffer[4]<<24|local_buffer[5]<<16|local_buffer[6]<<8|local_buffer[7];
+		*((uint32_t*)buffer) = ((uint32_t)local_buffer[0]<<24)|((uint32_t)local_buffer[1]<<16)|((uint32_t)local_buffer[2]<<8)|((uint32_t)local_buffer[3]);
+		*(((uint32_t*)buffer)+1) = ((uint32_t)local_buffer[4]<<24)|((uint32_t)local_buffer[5]<<16)|((uint32_t)local_buffer[6]<<8)|((uint32_t)local_buffer[7]);
 	}
 	else if( iss->target_chip->protocol == PROTOCOL_CH5xx )
 	{
