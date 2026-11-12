@@ -337,7 +337,6 @@ void HandleGDBPacket( void * dev, char * data, int len )
 		RVDebugExec( dev, HALT_TYPE_SINGLE_STEP, 0, 0 );
 		//SendReplyFull( "T05" );
 		//SendReplyFull( "OK" ); // Will be sent from RVNetPoll
-		RVHandleGDBBreakRequest( dev );
 		RVSendGDBHaltReason( dev );
 		break;
 	case 'D':
@@ -469,7 +468,6 @@ void HandleGDBPacket( void * dev, char * data, int len )
 							RVDebugExec( dev, HALT_TYPE_SINGLE_STEP, 0, 0 );
 							//SendReplyFull( "T05" );
 							//SendReplyFull( "OK" ); // Will be sent from RVNetPoll
-							RVHandleGDBBreakRequest( dev );
 							RVSendGDBHaltReason( dev );
 							fprintf( stderr, "Step.\n" );
 							break;

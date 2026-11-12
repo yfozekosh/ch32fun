@@ -243,7 +243,7 @@ int RVDebugExec( void * dev, enum HaltResetResumeType halt_reset_or_resume, int 
 	if( halt_reset_or_resume == HALT_TYPE_SINGLE_STEP )
 	{
 		MCF.SetEnableBreakpoints( dev, 1, 1 );
-		RVCommandEpilogue( dev );
+		// RVWriteCPURegister() already wrote the registers to the target.
 		MCF.HaltMode( dev, HALT_MODE_RESUME );
 		MCF.HaltMode( dev, HALT_MODE_HALT_BUT_NO_RESET );
 		RVCommandPrologue( dev );
