@@ -79,15 +79,21 @@ void RVCommandEpilogue( void * dev )
 
 void RVCommandResetPart( void * dev , int mode)
 {
+	int halted = ( mode == HALT_MODE_HALT_AND_RESET ||
+	               mode == HALT_MODE_HALT_BUT_NO_RESET );
+
 	MCF.HaltMode( dev, mode );
-	RVCommandPrologue( dev );
-	// Reset clears DCSR, including the ebreak bits; restore them.
-	MCF.SetEnableBreakpoints( dev, 1, 0 );
+	// Abstract commands require a halted core; while running, the debug
+	// module returns "Processor not halted".
+	if( halted )
+	{
+		RVCommandPrologue( dev );
+		// Reset clears DCSR, including the ebreak bits; restore them.
+		MCF.SetEnableBreakpoints( dev, 1, 0 );
+	}
 
 	// Keep the cached run state in sync to avoid a spurious stop.
-	shadow_running_state = !( mode == HALT_MODE_HALT_AND_RESET ||
-	                          mode == HALT_MODE_HALT_BUT_NO_RESET ||
-	                          mode == HALT_MODE_GO_TO_BOOTLOADER );
+	shadow_running_state = !halted;
 }
 
 void RVNetConnect( void * dev )

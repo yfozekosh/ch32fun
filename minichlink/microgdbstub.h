@@ -276,8 +276,8 @@ void HandleGDBPacket( void * dev, char * data, int len )
 					SendReplyFull( "OK" );
 				}
 				else if(StringMatch(cmd, "reset")) {
-					// same as reset run per OpenOCD
-					RVCommandResetPart( dev, HALT_MODE_REBOOT);
+					// OpenOCD's default is reset-and-halt; "reset run" is the run variant.
+					RVCommandResetPart( dev, HALT_MODE_HALT_AND_RESET);
 					SendReplyFull( "OK" );
 				} else if(StringMatch(cmd, "resume")) {
 					// just resume
@@ -341,12 +341,17 @@ void HandleGDBPacket( void * dev, char * data, int len )
 		RVSendGDBHaltReason( dev );
 		break;
 	case 'D':
-		// Handle disconnect.
+		// Acknowledge the detach before restoring software breakpoints; the
+		// flash writes can exceed GDB's timeout.
+		SendReplyFull( "OK" );
 		RVHandleDisconnect( dev );
-		//SendReplyFull( "OK" );
 		break;
 	case 'k':
 		RVHandleKillRequest( dev ); // no reply.
+		break;
+	case '!':
+		// Enable extended mode.
+		SendReplyFull( "OK" );
 		break;
 	case 'P': // Set register
 	{
@@ -388,7 +393,7 @@ void HandleGDBPacket( void * dev, char * data, int len )
 		uint8_t * pl = alloca( length_to_read * 2 );
 		if( RVReadMem( dev, address_to_read, pl, length_to_read ) < 0 )
 			goto err;
-		char * repl = alloca( length_to_read * 2 );
+		char * repl = alloca( length_to_read * 2 + 1 );
 		int i;
 		for( i = 0; i < length_to_read; i++ )
 		{
@@ -549,7 +554,7 @@ void HandleGDBPacket( void * dev, char * data, int len )
 		// Register Read (All regs)
 		int num_regs = RVGetNumRegisters( dev );
 
-		char cts[num_regs*8+1];
+		char cts[(num_regs+1)*8+1];
 		for( i = 0; i < num_regs+1; i++ )
 		{
 			uint32_t regret;
