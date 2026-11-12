@@ -197,6 +197,7 @@ struct InternalState
 	uint32_t clock_set;
 	uint8_t init_skip;
 	uint8_t debugger;
+	uint8_t fast_step; // Programmer supports direct-DMI single-step.
 };
 
 

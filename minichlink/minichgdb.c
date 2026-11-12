@@ -77,6 +77,36 @@ void RVCommandEpilogue( void * dev )
 	MCF.WriteReg32( dev, DMDATA0, 0 );
 }
 
+// Resume a single step without DefaultHaltMode()'s 10 ms settling delays.
+// DCSR.step makes the core halt after one instruction.
+static int RVFastStepResume( void * dev )
+{
+	if( !MCF.WriteReg32 || !MCF.FlushLLCommands )
+		return -1;
+
+	if( MCF.WriteReg32( dev, DMSHDWCFGR, 0x5aa50000 | (1<<10) ) ) return -1;
+	if( MCF.WriteReg32( dev, DMCFGR, 0x5aa50000 | (1<<10) ) ) return -1;
+	if( MCF.WriteReg32( dev, DMCONTROL, 0x40000001 ) ) return -1; // resumereq
+	return MCF.FlushLLCommands( dev );
+}
+
+static int RVFastStepWaitForHalt( void * dev, int timeout_ms )
+{
+	if( !MCF.ReadReg32 || !MCF.DelayUS )
+		return -2;
+
+	for( int i = 0; i < timeout_ms * 10; i++ )
+	{
+		uint32_t status;
+		if( MCF.ReadReg32( dev, DMSTATUS, &status ) )
+			return -1;
+		if( status & (1<<9) ) // allhalted
+			return 0;
+		MCF.DelayUS( dev, 100 );
+	}
+	return -2;
+}
+
 void RVCommandResetPart( void * dev , int mode)
 {
 	int halted = ( mode == HALT_MODE_HALT_AND_RESET ||
@@ -244,8 +274,36 @@ int RVDebugExec( void * dev, enum HaltResetResumeType halt_reset_or_resume, int 
 	{
 		MCF.SetEnableBreakpoints( dev, 1, 1 );
 		// RVWriteCPURegister() already wrote the registers to the target.
-		MCF.HaltMode( dev, HALT_MODE_RESUME );
-		MCF.HaltMode( dev, HALT_MODE_HALT_BUT_NO_RESET );
+		if( iss->fast_step )
+		{
+			// Wait for the single step to complete; the short delay avoids
+			// sampling the pre-resume allhalted state.
+			if( RVFastStepResume( dev ) == 0 )
+			{
+				MCF.DelayUS( dev, 500 );
+				if( RVFastStepWaitForHalt( dev, 20 ) == 0 )
+				{
+					iss->processor_in_mode = HALT_MODE_HALT_BUT_NO_RESET;
+					iss->flash_unlocked = 0;
+					iss->clock_set = 0;
+				}
+				else
+				{
+					MCF.HaltMode( dev, HALT_MODE_HALT_BUT_NO_RESET );
+				}
+			}
+			else
+			{
+				// Resume may have partially completed; halt without
+				// issuing a second resume.
+				MCF.HaltMode( dev, HALT_MODE_HALT_BUT_NO_RESET );
+			}
+		}
+		else
+		{
+			MCF.HaltMode( dev, HALT_MODE_RESUME );
+			MCF.HaltMode( dev, HALT_MODE_HALT_BUT_NO_RESET );
+		}
 		RVCommandPrologue( dev );
 		MCF.SetEnableBreakpoints( dev, 1, 0 );
 		//printf( "STEP PC: %08x\n", backup_regs[iss->nr_registers_for_debug] );
