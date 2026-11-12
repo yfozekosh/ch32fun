@@ -79,8 +79,21 @@ void RVCommandEpilogue( void * dev )
 
 void RVCommandResetPart( void * dev , int mode)
 {
+	int halted = ( mode == HALT_MODE_HALT_AND_RESET ||
+	               mode == HALT_MODE_HALT_BUT_NO_RESET );
+
 	MCF.HaltMode( dev, mode );
-	RVCommandPrologue( dev );
+	// Abstract commands require a halted core; while running, the debug
+	// module returns "Processor not halted".
+	if( halted )
+	{
+		RVCommandPrologue( dev );
+		// Reset clears DCSR, including the ebreak bits; restore them.
+		MCF.SetEnableBreakpoints( dev, 1, 0 );
+	}
+
+	// Keep the cached run state in sync to avoid a spurious stop.
+	shadow_running_state = !halted;
 }
 
 void RVNetConnect( void * dev )
@@ -121,7 +134,8 @@ void RVNetPoll(void * dev )
 		fprintf( stderr, "Error: Could not get part status\n" );
 		return;
 	}
-	int statusrunning = ((status & (1<<10)));
+	// DMSTATUS bit 10 reports that the core is running.
+	int statusrunning = !!(status & (1<<10));
 	
 	static int laststatus;
 	if( status != laststatus )
@@ -131,17 +145,13 @@ void RVNetPoll(void * dev )
 	}
 	if( statusrunning != shadow_running_state )
 	{
-		// If was running but now is halted.
+		// Only report halted transitions. A reply while the core is
+		// running desynchronizes the GDB remote protocol.
 		if( statusrunning == 0 )
 		{
 			RVCommandPrologue( dev );
 			last_halt_reason = 5;//((dscr>>6)&3)+5;
 			RVSendGDBHaltReason( dev );
-		}
-		else
-		{
-			// this is the reply to 's' or 'c' packets.
-			SendReplyFull( "OK" );
 		}
 		shadow_running_state = statusrunning;
 	}
@@ -306,6 +316,8 @@ int RVDebugExec( void * dev, enum HaltResetResumeType halt_reset_or_resume, int 
 		}
 		else
 		{
+			// Reset may have cleared the DCSR ebreak bits; restore them.
+			MCF.SetEnableBreakpoints( dev, 1, 0 );
 			RVCommandEpilogue( dev );
 		}
 

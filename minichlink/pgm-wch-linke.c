@@ -1048,6 +1048,11 @@ static int LEWriteBinaryBlob( void * d, uint32_t address_to_write, uint32_t len,
 	libusb_device_handle * dev = ((struct LinkEProgrammerStruct*)d)->devh;
 	struct InternalState * iss = (struct InternalState*)(((struct LinkEProgrammerStruct*)d)->internal);
 
+	// The LinkE flash loader only accepts the 0x08000000 mapping. Normalize
+	// low addresses as DefaultWriteBinaryBlob() does.
+	if( address_to_write < 0x01000000 )
+		address_to_write |= 0x08000000;
+
 	InternalLinkEHaltMode( d, 0 );
 
 	int i;
