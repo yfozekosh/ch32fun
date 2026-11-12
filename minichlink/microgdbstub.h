@@ -263,26 +263,26 @@ void HandleGDBPacket( void * dev, char * data, int len )
 				if(StringMatch(cmd, "halt")) {
 					// only halt
 					RVCommandResetPart( dev, HALT_MODE_HALT_BUT_NO_RESET);
-					SendReplyFull( "+" );
+					SendReplyFull( "OK" );
 				}
 				else if(StringMatch(cmd, "reset halt")) {
 					// reset and keep halted after reset
 					RVCommandResetPart( dev, HALT_MODE_HALT_AND_RESET);
-					SendReplyFull( "+" );
+					SendReplyFull( "OK" );
 				}
 				else if(StringMatch(cmd, "reset run")) {
 					// reset and run (i.e., reboot)
 					RVCommandResetPart( dev, HALT_MODE_REBOOT);
-					SendReplyFull( "+" );
+					SendReplyFull( "OK" );
 				}
 				else if(StringMatch(cmd, "reset")) {
 					// same as reset run per OpenOCD
 					RVCommandResetPart( dev, HALT_MODE_REBOOT);
-					SendReplyFull( "+" );
+					SendReplyFull( "OK" );
 				} else if(StringMatch(cmd, "resume")) {
 					// just resume
 					RVCommandResetPart( dev, HALT_MODE_RESUME);
-					SendReplyFull( "+" );
+					SendReplyFull( "OK" );
 				} else if(StringMatch(cmd, "help")) {
 					static const char helptext[] = 
 						"minichlink GDB monitor help:\n"
@@ -290,16 +290,16 @@ void HandleGDBPacket( void * dev, char * data, int len )
 						"- resume: Resume execution\n"
 						"- reset [halt, run]: Reset and optionally halt or run\n";
 					MakeGDBPrintText(helptext);
-					SendReplyFull( "+" );
+					SendReplyFull( "OK" );
 				}
 				else {
 					fprintf( stderr, "Unknown monitor command '%s', use 'monitor help'.\n", cmd );
 					MakeGDBPrintText( "Unknown monitor command, use 'monitor help'\n" );
-					SendReplyFull( "-" );
+					SendReplyFull( "E 01" );
 				}
 			} else {
 				MakeGDBPrintText("No monitor command given, use 'monitor help'\n");
-				SendReplyFull( "-" );
+				SendReplyFull( "E 01" );
 			}
 		}
 		else if( StringMatch( data, "Xfer:memory-map" ) )

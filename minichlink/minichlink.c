@@ -3093,7 +3093,7 @@ int DefaultSetEnableBreakpoints( void * dev, int is_enabled, int single_step )
 		DCSR &=~4;
 
 	if( MCF.WriteCPURegister( dev, 0x7b0, DCSR ) )
-		fprintf( stderr, "Error: DCSR could not be read\n" );
+		fprintf( stderr, "Error: DCSR could not be written\n" );
 
 	return 0;
 }
