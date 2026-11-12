@@ -717,8 +717,8 @@ int ch5xx_write_flash_using_microblob2(void * dev, uint32_t start_addr, uint8_t*
 		if (!(byte & 0xFF)) {
 			do {
 				if ((timer++) > 200) {
-					fprintf(stderr, "Error! Flash write timed out on block end. At byte %d\n", byte);
-					fprintf(stderr, "dmdata0 = %08x, byte = %d\n", dmdata0, byte);
+					fprintf(stderr, "Error! Flash write timed out on block end. At byte %u\n", byte);
+					fprintf(stderr, "dmdata0 = %08x, byte = %u\n", dmdata0, byte);
 					r = -1;
 					goto write_end;
 				}

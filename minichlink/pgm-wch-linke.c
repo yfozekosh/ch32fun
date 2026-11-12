@@ -14,6 +14,8 @@
 #define FORCE_EXTERNAL_CHIP_DETECTION 1
 #define USB_SERIAL_MAX 256
 
+static libusb_context * wch_libusb_ctx = 0;
+
 struct LinkEProgrammerStruct
 {
 	void * internal;
@@ -136,6 +138,7 @@ static inline libusb_device_handle * wch_link_base_setup( int inhibit_startup, c
 	libusb_context * ctx = 0;
 	int status;
 	status = libusb_init(&ctx);
+	wch_libusb_ctx = ctx;
 	if (status < 0) {
 		fprintf( stderr, "Error: libusb_init_context() returned %d\n", status );
 		exit( status );
@@ -240,8 +243,11 @@ static inline libusb_device_handle * wch_link_base_setup( int inhibit_startup, c
 			exit( -3 );
 		}
 
+		libusb_free_device_list(list, 1);
 		return 0;
 	}
+
+	libusb_free_device_list(list, 1);
 
 	libusb_device_handle * devh;
 	status = libusb_open( found, &devh );
@@ -324,7 +330,7 @@ static int LEReadReg32( void * dev, uint8_t reg_7_bit, uint32_t * commandresp )
 		0, 0, 0, 0,
 		iOP };
 	wch_link_command( devh, req, sizeof( req ), (int*)&transferred, rbuff, sizeof( rbuff ) );
-	*commandresp = ( rbuff[4]<<24 ) | (rbuff[5]<<16) | (rbuff[6]<<8) | (rbuff[7]<<0);
+	*commandresp = ( (uint32_t)rbuff[4]<<24 ) | ( (uint32_t)rbuff[5]<<16 ) | ( (uint32_t)rbuff[6]<<8 ) | ( (uint32_t)rbuff[7]<<0 );
 	if( transferred != 9 || rbuff[8] == 0x02 || rbuff[8] == 0x03 ) //|| rbuff[3] != reg_7_bit )
 	{
 		return LE_HANDLE_REG_ERROR( dev, devh, "read", reg_7_bit, rbuff, (int)transferred );
@@ -685,6 +691,11 @@ static int LEExit( void * d )
 {
 	libusb_device_handle * dev = ((struct LinkEProgrammerStruct*)d)->devh;
 	wch_link_command( (libusb_device_handle *)dev, "\x81\x0d\x01\xff", 4, 0, 0, 0);
+	libusb_close( dev );
+	struct InternalState * iss = ((struct ProgrammerStructBase*)d)->internal;
+	if ( iss ) free( iss );
+	if ( wch_libusb_ctx ) { libusb_exit( wch_libusb_ctx ); wch_libusb_ctx = 0; }
+	free( d );
 	return 0;
 }
 
